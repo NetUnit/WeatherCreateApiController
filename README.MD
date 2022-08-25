@@ -37,6 +37,7 @@ Curl commnads to test API:
 # curl -X GET -H "Content-Type: application/json" -d '{"city":"Lviv","api_key":"9afbc956d3b5e6886292ecf8d449f81f", "city_id":"702550"}' "http://localhost:8080/owm"
 # curl -X GET -H "Content-Type: application/json" -d '{"id":"3"}' "http://localhost:8080/owm/3" - header like ... -d '{"id":"3"} is when url considers @RequestBody Map<String, String> as a parameter;
 
+// ALTER TABLE weather ALTER COLUMN date SET DEFAULT now();
 
 
 
