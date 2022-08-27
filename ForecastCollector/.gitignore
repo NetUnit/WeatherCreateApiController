@@ -44,5 +44,4 @@ build/
 *.mvnw
 
 # folders
-ForecastCollector/
 ForecastCollector/mvnw
