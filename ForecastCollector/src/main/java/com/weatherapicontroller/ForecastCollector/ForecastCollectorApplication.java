@@ -52,6 +52,12 @@ public class ForecastCollectorApplication implements CommandLineRunner {
 					"'OWM');";
 
 			statement.executeUpdate(sql_insert);
+			// *** optional *** \\
+			// in case we don't use location model: add constraint
+			// String sql_add_constraint  = "alter table company add constraint id primary key(id);";
+			// add foreign key into weather table
+			// String sql_add_f_key = "alter table weather add foreign key(company_id) references company(id);";
+
 		} catch (Exception error) {
 			System.out.println(error);
 		}

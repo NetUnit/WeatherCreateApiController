@@ -55,10 +55,11 @@ import static org.springframework.data.domain.ExampleMatcher.GenericPropertyMatc
 public class GetForecast {
     @Autowired
     private JdbcTemplate jdbcTemplate;
-    // create separate table for cities later
+
+    //    @Autowired
+    //    private LocationRepository location_repo;
+
     private String apiKey="9afbc956d3b5e6886292ecf8d449f81f";
-    private int id_city = 1850147;
-    private String location = "Tokio";
     // create a separate package for that
     private String OWM = "http://api.openweathermap.org/data/2.5/weather?id=%d&appid=%s&units=%s";
     private String unitGroup="metric"; //us,metric,uk
@@ -69,16 +70,10 @@ public class GetForecast {
     String weather = "weather";
     String main = "main";
     String sys = "sys";
-    public String getApiEndPoint(String... args) {
-        if (args.length == 0) {
-            String apiEndPoint = String.format(OWM, id_city, apiKey, unitGroup);
-            return apiEndPoint;
-        } else {
-            Integer id_city = Integer.valueOf(args[0]);
-            String api_key = args[1];
-            String apiEndPoint = String.format(OWM, id_city, api_key , unitGroup);
-            return apiEndPoint;
-        }
+    public String getApiEndPoint(String city_id, String api_key) {
+        Integer cityId = Integer.valueOf(city_id);
+        String apiEndPoint = String.format(OWM, cityId, api_key, unitGroup);
+        return apiEndPoint;
     }
     public CloseableHttpResponse get_response(String apiEndPoint) throws IOException {
         // submit the request to the Weather API
@@ -152,17 +147,13 @@ public class GetForecast {
         // check object fields & values
         List<Field> fields = List.of(object.getClass().getDeclaredFields());
         for (Field field: fields) {
-            System.out.println(field.getName());
             field.setAccessible(true);
-            System.out.println(field.get(object));
         }
     }
-
     public boolean check_weather_time_rec(String city) throws IllegalAccessException {
         try {
             // parse db and get of this city
             String last_city_record = String.format(last_date_sql, weather, city);
-            System.out.println(last_city_record);
             List<Weather> last_weather_lst = jdbcTemplate.query(
                     last_city_record,
                     new WeatherRowMapper()
@@ -195,19 +186,8 @@ public class GetForecast {
             System.out.println(String.format("THIS IS A NEW RECORD IN %s | %s", weather.toUpperCase(), city));
             return true;
         }
-        // get current time
-        // long millis = System.currentTimeMillis();
-        // long current_time = new Date(millis).getTime();
-        // long ONE_MINUTE_IN_MILLIS = 60000;
-        //
-        // Date afterAddingMins = new Date(lastTimeInMs
-        //        + (10 * ONE_MINUTE_IN_MILLIS));
-
-        // System.out.println(afterAddingMins.getTime() - current_time);
-        // System.out.println(String.format(" %d | %d ", afterAddingMins.getTime(), current_time));
         return false;
     }
-
     // find matches https://www.baeldung.com/spring-data-query-by-example
     public boolean check_obj_exists(String city, Integer city_id) {
         String get_sql = String.format("SELECT * FROM LOCATION WHERE city='%s' OR city_id='%d'", city, city_id);
@@ -322,7 +302,7 @@ public class GetForecast {
         }
 
         boolean time_check_passed = check_weather_time_rec(city);
-        System.out.println(time_check_passed);
+
         if (time_check_passed) {
             // insert entity into db
             String insert_sql = String.format(
@@ -341,6 +321,19 @@ public class GetForecast {
         return false;
     }
 
+    public List get_forecasts_by_city(String city) {
+        String query = String.format("select * from weather " +
+                "where city='%s' order by date;",
+                city
+                );
+        List<Weather> forecasts_set = jdbcTemplate.query(
+                query,
+                new WeatherRowMapper()
+        );
+
+        return forecasts_set;
+    }
+
     // unique method that responds equally for POST and GET
     @RequestMapping("/owm")
     public String owm_mapper(
@@ -357,7 +350,6 @@ public class GetForecast {
         String entity_raw_result = getEntityOrError(response);
         // full json data
         JSONObject json_obj = get_json_data(entity_raw_result);
-        System.out.println(json_obj);
 
         // #1 transfer location entity into db
         create_location_entity(json_obj);
@@ -365,15 +357,12 @@ public class GetForecast {
         // #2 transfer weather_par entity into db
         create_basic_weather_entity(json_obj);
 
-        // #3 company entity is constant and is created automatically through jdbc
-
         // stringify response
         return json_obj.toString();
 
         // render JSON object
         // for later --->
     }
-
     // collects data from openweathermap.org
     @GetMapping("/owm/all")
     public String get_all_weather(HttpServletRequest request) throws IOException, IllegalAccessException {
@@ -399,7 +388,6 @@ public class GetForecast {
         }
         return full_json.toString();
     }
-
     @GetMapping("/owm/{id}")
     public String get_weather_by_id(@PathVariable String id) throws IOException, IllegalAccessException {
         String get_city = String.format("SELECT * FROM LOCATION where id=%s", id);
@@ -413,6 +401,28 @@ public class GetForecast {
         String entity_raw_result = getEntityOrError(response);
         // full json data
         JSONObject json_obj = get_json_data(entity_raw_result);
+        return json_obj.toString();
+    }
+    @GetMapping("/owm/cities/{city}")
+    public String get_weather_by_city(@PathVariable String city) throws IllegalAccessException {
+        // get object by city;
+        List<Weather> forecasts = get_forecasts_by_city(city);
+        JSONObject json_obj = new JSONObject();
+
+        for (Weather forecast: forecasts) {
+            HashMap<String, Object> data = new HashMap<>();
+            Field[] fields = forecast.getClass().getDeclaredFields();
+
+            for (Field field: fields) {
+                field.setAccessible(true);
+                data.put(field.getName(), field.get(forecast));
+            }
+
+            String cityName = forecast.getCity();
+            json_obj.append(cityName, data);
+        }
+
+        // JSONObject city_weather_records = get_forecasts_by_city(city);
         return json_obj.toString();
     }
 
@@ -478,6 +488,8 @@ public class GetForecast {
     }
 
 
+
+
     // put saving into the db here: into request POST mapping
     //    @PostMapping
     //    public Map<String, String> create(@RequestBody Map<String, String> message) {
@@ -501,5 +513,4 @@ public class GetForecast {
     //        // System.out.println(condition);
     //        return match.isPresent();
     //    }
-
 }

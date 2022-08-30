@@ -24,6 +24,10 @@ public class Weather {
     private Double pressure;
     private Double humidity;
     private Double temp;
+    @ManyToOne
+    private Location location;
+    private Integer company_id;
+
 
     // getters
     public Integer getId() {return id;}
@@ -34,6 +38,8 @@ public class Weather {
     private Double getPressure() {return pressure;}
     private Double getHumidity() {return humidity;}
     private Double getTemp() {return temp;}
+    private Location getLocation() {return location;}
+    private Integer getCompany() {return company_id;}
 
     // setters
     public void setId(Integer id) {this.id = id;}
@@ -48,7 +54,8 @@ public class Weather {
     public Weather() {};
 
     public Weather(String country, String city, Date date, Time time,
-                   Double pressure, Double humidity, Double temp) {
+                   Double pressure, Double humidity, Double temp,
+                   Integer location_id, Integer company_id) {
         this.country = country;
         this.city = city;
         this.date = date;
@@ -56,5 +63,7 @@ public class Weather {
         this.pressure = pressure;
         this.humidity = humidity;
         this.temp = temp;
+        this.location = new Location();
+        this.company_id = company_id;
     };
 }

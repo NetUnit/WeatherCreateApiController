@@ -38,6 +38,8 @@ Curl commnads to test API:
 # curl -X GET -H "Content-Type: application/json" -d '{"id":"3"}' "http://localhost:8080/owm/3" - header like ... -d '{"id":"3"} is when url considers @RequestBody Map<String, String> as a parameter;
 
 // ALTER TABLE weather ALTER COLUMN date SET DEFAULT now();
+// select * from weather join location on location_id=LOCATION.ID where location_id=4 order by location.id
+// select l.city, w.country, w.date, w.humidity, w.pressure, w.temp, w.time from weather w left join location l on l.id=w.location_id;
 
 
 
